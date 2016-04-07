@@ -30,12 +30,15 @@ RSpec.describe Lark::Update do
       update.start
     end
 
+    let(:have_tweeted) {
+      have_received(:update).with('Title Description http://www.example.com')
+    }
+
     context "latest item not present in database" do
       let(:present?){false}
 
       it "Publishes latest RSS item" do
-        expect(twitter).to have_received(:update)
-          .with('Title Description http://www.example.com')
+        expect(twitter).to have_tweeted
       end
 
       it "Saves the guid of the item to the database" do
@@ -48,8 +51,7 @@ RSpec.describe Lark::Update do
       let(:present?){true}
 
       it "Does not publish anything" do
-        expect(twitter).not_to have_received(:update)
-          .with('Title Description http://www.example.com')
+        expect(twitter).not_to have_tweeted
       end
 
     end
