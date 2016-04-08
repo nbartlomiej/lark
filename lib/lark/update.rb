@@ -6,17 +6,17 @@ module Lark
       id = item.guid.content
 
       unless database.present?(id)
-        tweet(item)
+        publish_tweet(item)
         database.store(id)
       end
     end
 
     private
 
-    def tweet(item)
+    def publish_tweet(item)
       twitter = Lark::TwitterClientBuilder.create
-      status = "#{item.title} #{item.description} #{item.link}"
-      twitter.update(status)
+      tweet = Lark::Tweet.new(item)
+      twitter.update_with_media(tweet.status, tweet.file)
     end
   end
 end

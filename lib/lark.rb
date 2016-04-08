@@ -1,4 +1,5 @@
 require 'lark/database'
 require 'lark/rss'
+require 'lark/tweet'
 require 'lark/twitter_client_builder'
 require 'lark/update'

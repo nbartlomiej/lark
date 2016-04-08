@@ -1,5 +1,6 @@
 require 'lark'
 require 'json'
+require 'pry'
 
 def mock_response(filename)
   {status: 200, body: File.new("spec/mock_responses/#{filename}.xml")}
@@ -20,10 +21,10 @@ def use_env_variables(options)
   end
 end
 
-def tweet_with_id(i)
-  tweet =  "Title #{i} Description #{i} http://www.example.com/item/#{i}"
-  a_request(:post, "https://api.twitter.com/1.1/statuses/update.json")
-    .with( body: { "status" => tweet })
+def tweet_with_id(id)
+  status =  "Title #{id} Description #{id} http://www.example.com/item/#{id}"
+  a_request(:post, "https://api.twitter.com/1.1/statuses/update_with_media.json")
+    .with(body: "-------------RubyMultipartPost\r\nContent-Disposition: form-data; name=\"media[]\"; filename=\"image.png\"\r\nContent-Length: 7\r\nContent-Type: image/png\r\nContent-Transfer-Encoding: binary\r\n\r\nimage #{id}\r\n-------------RubyMultipartPost\r\nContent-Disposition: form-data; name=\"status\"\r\n\r\n#{status}\r\n-------------RubyMultipartPost--\r\n\r\n")
 end
 
 RSpec.describe "RSS Publisher" do
@@ -43,14 +44,24 @@ RSpec.describe "RSS Publisher" do
       })
       .to_return(*responses)
 
-    stub_request(:post, "https://api.twitter.com/1.1/statuses/update.json")
-      .with(
-        :headers => {
-          'Accept'=>'application/json',
-          'Authorization'=>/OAuth oauth_consumer_key="1", oauth_nonce="[a-f0-9]+", oauth_signature="[A-Za-z0-9%]+", oauth_signature_method="HMAC-SHA1", oauth_timestamp="[0-9]+", oauth_token="3", oauth_version="1.0"/,
-          'Content-Type'=>'application/x-www-form-urlencoded',
-          'User-Agent'=>'TwitterRubyGem/5.16.0'
-        })
+    stub_request(:get, "http://www.example.com/item/2.jpg")
+      .to_return(status: 200, body: "image 2", headers: {})
+
+    stub_request(:get, "http://www.example.com/item/3.jpg")
+      .to_return(status: 200, body: "image 3", headers: {})
+
+    stub_request(:get, "http://www.example.com/item/4.jpg")
+      .to_return(status: 200, body: "image 4", headers: {})
+
+
+    stub_request(:post, "https://api.twitter.com/1.1/statuses/update_with_media.json")
+      .with(headers: {
+        'Accept'=>'application/json',
+        'Authorization'=>/OAuth oauth_consumer_key="1", oauth_nonce="[a-f0-9]+", oauth_signature="[A-Za-z0-9%]+", oauth_signature_method="HMAC-SHA1", oauth_timestamp="[0-9]+", oauth_token="3", oauth_version="1.0"/,
+        'Content-Length'=>/\d+/,
+        'Content-Type'=>'multipart/form-data; boundary=-----------RubyMultipartPost',
+        'User-Agent'=>'TwitterRubyGem/5.16.0'
+      })
       .to_return(
         :status => 200,
         :body => { "id" => 100000000000000000, }.to_json,
